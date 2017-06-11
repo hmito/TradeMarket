@@ -1,0 +1,3 @@
+[submodule "hmLib"]
+	path = hmLib
+	url = https://github.com/hmito/hmLib.git
