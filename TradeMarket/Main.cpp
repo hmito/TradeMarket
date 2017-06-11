@@ -63,7 +63,9 @@ Marchant‚ğMarket‚É—a‚¯‚éŒ`‚Å”­’B
 Market‚ÍMarchant‚ğ§Œä‚·‚é‚±‚Æ‚Å”­’ˆ—‚ğŠ®—¹‚·‚é
 */
 int main(void) {
-	trade::null_market_logger Logger;
+//	trade::null_market_logger Logger;
+	trade::market_data Data;
+	trade::market_data::logger Logger(Data);
 	trade::qamount_maximize_market_manager Manager;
 	trade::market Market1(1);
 	trade::null_recipient M1,M2;
