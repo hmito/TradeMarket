@@ -62,7 +62,8 @@ namespace trade {
 	private:
 		std::unordered_map<item_id, data_set> DataSet;
 	public:
-		struct logger : public market_logger_interface {
+		struct logger {
+			using order = typename market_interface::order_content;
 		private:
 			this_type* This;
 		public:
@@ -71,16 +72,16 @@ namespace trade {
 				This->DataSet.clear();
 			}
 		public:
-			void order_sell(const order& Order)override {
+			void order_sell(const order& Order) {
 				This->DataSet[Order.id()].add_sell_order(Order.amount(), Order.price());
 			}
-			void order_buy(const order& Order)override {
+			void order_buy(const order& Order) {
 				This->DataSet[Order.id()].add_buy_order(Order.amount(), Order.price());
 			}
-			void contract_sell(const order& Order, amount_t Amount)override {
+			void contract_sell(const order& Order, amount_t Amount) {
 				This->DataSet[Order.id()].add_sell_contract(Amount, Order.price());
 			}
-			void contract_buy(const order& Order, amount_t Amount) override {
+			void contract_buy(const order& Order, amount_t Amount)  {
 				This->DataSet[Order.id()].add_buy_contract(Amount, Order.price());
 			}
 		};

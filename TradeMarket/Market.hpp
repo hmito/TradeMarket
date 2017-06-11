@@ -1,140 +1,156 @@
 #ifndef TRADE_MARKET_INC
 #define TRADE_MARKET_INC 100
 #
+#include<utility>
 #include<vector>
-#include<algorithm>
-#include<numeric>
 #include"Utility.hpp"
+#include"Stock.hpp"
 namespace trade {
-	using market_id = unsigned int;
-
-	struct merchant_interface {
-		virtual void operator()(item_id ID, amount_t Amount_) = 0;
-	};
-
-	struct order {
-	private:
-		item_id ID;
-		amount_t Amount;
-		amount_t Price;
-		merchant_interface* Merchant;
-		merchant_interface* Payment;
-	public:
-		order(item_id ID_, amount_t Amount_, amount_t Price_, merchant_interface& Merchant_, merchant_interface& Payment_) 
-		: ID(ID_), Amount(Amount_), Price(Price_), Merchant(&Merchant_), Payment(&Payment_){
-		}
-		order(const order&) = default;
-		order& operator=(const order&) = default;
-		order(order&&) = default;
-		order& operator=(order&&) = default;
-	public:
-		item_id id()const { return ID; }
-		amount_t amount()const { return Amount; }
-		amount_t price()const { return Price; }
-		void operator()(bool IsSell, item_id CurrencyID, amount_t Amount_) {
-			if (IsSell) {
-				(*Merchant)(ID, -Amount_);
-				(*Payment)(CurrencyID, Price);
-			} else {
-				(*Merchant)(ID, Amount_);
-				(*Payment)(CurrencyID, -Price);
-			}
-		}
-		void operator()(bool IsSell, item_id CurrencyID) {
-			operator()(IsSell, CurrencyID, Amount);
-		}
-	public:
-		struct sell_pred {
-			bool operator()(const order& v1, const order& v2) {
-				if (v1.ID != v2.ID) return v1.ID < v2.ID;
-				return v1.Price < v2.Price;
-			}
-		};
-		struct buy_pred {
-			bool operator()(const order& v1, const order& v2) {
-				if (v1.ID != v2.ID) return v1.ID < v2.ID;
-				return v1.Price > v2.Price;
-			}
-		};
-	};
-
 	struct market_interface {
-		virtual void sell(order Order_) = 0;
-		virtual void buy(order Order_) = 0;
-	};
-
-	struct market_logger_interface {
-		virtual void order_sell(const order& Order) = 0;
-		virtual void order_buy(const order& Order) = 0;
-		virtual void contract_sell(const order& Order, amount_t Amount) = 0;
-		virtual void contract_buy(const order& Order, amount_t Amount) = 0;
+	public:
+		struct order_content {
+		private:
+			item_id ID;
+			amount_t Amount;
+			item_id Currency;
+			amount_t Price;
+		public:
+			//Positive Price: sell, Negative Price: buy
+			order_content(item_id ID_, amount_t Amount_, item_id Currency_, amount_t Price_,bool IsSell_)
+				: ID(ID_), Amount(Amount_), Currency(Currency_), Price(IsSell_?Price_:-Price_) {
+			}
+			order_content(const order_content&) = default;
+			order_content& operator=(const order_content&) = default;
+			order_content(order_content&&) = default;
+			order_content& operator=(order_content&&) = default;
+		public:
+			item_id id()const { return ID; }
+			amount_t amount()const { return Amount; }
+			item_id currency()const { return Currency; }
+			amount_t price()const { return Price>0?Price:-Price; }
+			amount_t cmp_price()const { return Price; }
+			bool is_sell()const { return Price > 0; }
+			void deal(stock_interface& Recipient, stock_interface& Market) {
+				if (is_sell()) {
+					//Sell
+					trade::deal(Recipient, Market, ID, amount());
+					trade::deal(Market, Recipient, Currency, price()*amount());
+				} else {
+					//Buy
+					trade::deal(Market, Recipient, ID, amount());
+					trade::deal(Recipient, Market, Currency, price()*amount());
+				}
+				Amount = 0;
+			}
+		};
+		struct recipient_interface {
+			virtual bool operator()(order_content Content_, stock_interface& Market_) = 0;
+		};
+	protected:
+		struct order_item {
+		private:
+			order_content Content;
+			recipient_interface* pRecipient;
+		public:
+			order_item(order_content Content_, recipient_interface& Recipient_)
+				: Content(Content_), pRecipient(&Recipient_) {
+			}
+			order_item(const order_item&) = default;
+			order_item& operator=(const order_item&) = default;
+			order_item(order_item&&) = default;
+			order_item& operator=(order_item&&) = default;
+		public:
+			const order_content& content()const { return Content; }
+			item_id id()const { return Content.id(); }
+			amount_t amount()const { return Content.amount(); }
+			item_id currency()const { return Content.currency(); }
+			amount_t price()const { return Content.price(); }
+			bool is_sell()const { return Content.is_sell(); }
+			bool operator()(stock_interface& Market_) {
+				return (*pRecipient)(Content,Market_);
+			}
+			bool operator()(stock_interface& Market_, amount_t Amount_) {
+				return (*pRecipient)(order_content(Content.id(), Amount_, Content.currency(), Content.price(), Content.is_sell()), Market_);
+			}
+			friend bool operator<(const order_item& v1, const order_item& v2) {
+				if (v1.id() != v2.id()) return v1.id()< v2.id();
+				return v1.Content.cmp_price() < v2.Content.cmp_price();
+			}
+		};
+	public:
+		virtual item_id currency()const = 0;
+		virtual bool order(order_content Content_, recipient_interface& Recipient_) = 0;
 	};
 	struct market : public market_interface {
 	private:
-		using orders = std::vector<order>;
+		using order_item = typename market_interface::order_item;
+		using orders = std::vector<order_item>;
 		using iterator = typename orders::iterator;
 	private:
 		item_id Currency;
-		amount_t Profit;
+		fastadd_abolute_stock Stock;
 	private:
 		orders Sell;
 		orders Buy;
 	public:
-		market(item_id Currency_) :Currency(Currency_){}
+		market(item_id Currency_) :Currency(Currency_) {}
 	public:
-		void sell(order Order_)override {
-			Sell.push_back(std::move(Order_));
-		}
-		void buy(order Order_)override {
-			Buy.push_back(std::move(Order_));
+		item_id currency()const override { return Currency; }
+		bool order(order_content Content_, recipient_interface& Recipient_)override {
+			if (Content_.amount() <= 0)return true;
+			if(Content_.is_sell())Sell.emplace_back(Content_, Recipient_);
+			else Buy.emplace_back(Content_, Recipient_);
+			return false;
 		}
 		template<typename market_manager_, typename logger_>
 		void operator()(market_manager_&& Manager, logger_&& Logger) {
 			if (Buy.empty() || Sell.empty())return;
 
-			std::sort(Buy.begin(), Buy.end(),order::buy_pred());
-			std::sort(Sell.begin(), Sell.end(), order::sell_pred());
+			std::sort(Buy.begin(), Buy.end());
+			std::sort(Sell.begin(), Sell.end());
 
-			for (auto& val : Buy) { Logger.order_buy(val); }
-			for (auto& val : Sell) { Logger.order_sell(val); }
+			for (const auto& val : Sell) { Logger.order(val.content()); }
+			for (const auto& val : Buy) { Logger.order(val.content()); }
 
 			auto TargetBuyBeg = Buy.begin();
-			auto TargetBuyEnd = std::upper_bound(TargetBuyBeg, Buy.end(), *TargetBuyBeg, [](const order& v1, const order& v2) ->bool {return v1.id() < v2.id(); });
+			auto TargetBuyEnd = std::upper_bound(TargetBuyBeg, Buy.end(), *TargetBuyBeg, [](const order_item& v1, const order_item& v2) ->bool {return v1.id() < v2.id(); });
 			auto TargetSellBeg = Sell.begin();
-			auto TargetSellEnd = std::upper_bound(TargetSellBeg, Sell.end(), *TargetSellBeg, [](const order& v1, const order& v2) ->bool {return v1.id() < v2.id(); });
+			auto TargetSellEnd = std::upper_bound(TargetSellBeg, Sell.end(), *TargetSellBeg, [](const order_item& v1, const order_item& v2) ->bool {return v1.id() < v2.id(); });
 
 			while (TargetBuyBeg != Buy.end() && TargetSellBeg != Sell.end()) {
 				//Find Order Range of current ID
 				if (TargetBuyBeg->id() < TargetSellBeg->id()) {
 					TargetBuyBeg = TargetBuyEnd;
 					if (TargetBuyBeg == Buy.end())break;
-					TargetBuyEnd = std::upper_bound(TargetBuyBeg, Buy.end(), *TargetBuyBeg, [](const order& v1, const order& v2) ->bool {return v1.id() < v2.id(); });
+					TargetBuyEnd = std::upper_bound(TargetBuyBeg, Buy.end(), *TargetBuyBeg, [](const order_item& v1, const order_item& v2) ->bool {return v1.id() < v2.id(); });
 					continue;
-				}
-				else if (TargetBuyBeg->id() > TargetSellBeg->id()) {
+				} else if (TargetBuyBeg->id() > TargetSellBeg->id()) {
 					TargetSellBeg = TargetSellEnd;
 					if (TargetSellBeg == Sell.end())break;
-					TargetSellEnd = std::upper_bound(TargetSellBeg, Sell.end(), *TargetSellBeg, [](const order& v1, const order& v2) ->bool {return v1.id() < v2.id(); });
+					TargetSellEnd = std::upper_bound(TargetSellBeg, Sell.end(), *TargetSellBeg, [](const order_item& v1, const order_item& v2) ->bool {return v1.id() < v2.id(); });
 					continue;
 				}
 
-				Profit += Manager(Currency, TargetBuyBeg, TargetBuyEnd, TargetSellBeg, TargetSellEnd, Logger);
+				Manager(Currency, Stock, TargetBuyBeg, TargetBuyEnd, TargetSellBeg, TargetSellEnd, Logger);
 
 				TargetBuyBeg = TargetBuyEnd;
 				if (TargetBuyBeg == Buy.end())break;
-				TargetBuyEnd = std::upper_bound(TargetBuyBeg, Buy.end(), *TargetBuyBeg, [](const order& v1, const order& v2) ->bool {return v1.id() < v2.id(); });
+				TargetBuyEnd = std::upper_bound(TargetBuyBeg, Buy.end(), *TargetBuyBeg, [](const order_item& v1, const order_item& v2) ->bool {return v1.id() < v2.id(); });
 
 				TargetSellBeg = TargetSellEnd;
 				if (TargetSellBeg == Sell.end())break;
-				TargetSellEnd = std::upper_bound(TargetSellBeg, Sell.end(), *TargetSellBeg, [](const order& v1, const order& v2) ->bool {return v1.id() < v2.id(); });
+				TargetSellEnd = std::upper_bound(TargetSellBeg, Sell.end(), *TargetSellBeg, [](const order_item& v1, const order_item& v2) ->bool {return v1.id() < v2.id(); });
 			}
 			Buy.clear();
 			Sell.clear();
+
+			Stock.sort();
 		}
+
 	};
 	struct amount_maximize_market_manager {
 		template<typename iterator, typename logger>
-		amount_t operator()(item_id Currency, iterator BuyBeg, iterator BuyEnd, iterator SellBeg, iterator SellEnd, logger&& Logger) {
+		void operator()(item_id Currency, stock_interface& Stock, iterator BuyBeg, iterator BuyEnd, iterator SellBeg, iterator SellEnd, logger&& Logger) {
 			//Amount Maximize Calculation
 			amount_t BuyRemain = 0;
 			amount_t SellRemain = 0;
@@ -194,28 +210,27 @@ namespace trade {
 			}
 
 			for (; BuyBeg != BuyItr; ++BuyBeg) {
-				(*BuyBeg)(false, Currency);
-				Logger.contract_buy(*BuyBeg, BuyBeg->amount());
+				Logger.contract(BuyBeg->content(), BuyBeg->amount());
+				(*BuyBeg)(Stock);
 			}
 			if (BuyItr != BuyEnd && BuyItr->amount() != BuyRemain) {
-				(*BuyItr)(false, Currency, BuyItr->amount() - BuyRemain);
-				Logger.contract_buy(*BuyItr, BuyItr->amount() - BuyRemain);
+				Logger.contract(BuyItr->content(), BuyItr->amount() - BuyRemain);
+				(*BuyItr)(Stock, BuyItr->amount() - BuyRemain);
 			}
 			for (; SellBeg != SellItr; ++SellBeg) {
-				(*SellBeg)(true, Currency);
-				Logger.contract_sell(*SellBeg, SellBeg->amount());
+				Logger.contract(SellBeg->content(), SellBeg->amount());
+				(*SellBeg)(Stock);
 			}
 			if (SellItr != SellEnd && SellItr->amount() != SellRemain) {
-				(*SellItr)(true, Currency, SellItr->amount() - SellRemain);
-				Logger.contract_sell(*SellItr, SellItr->amount() - SellRemain);
+				Logger.contract(SellItr->content(), SellItr->amount() - SellRemain);
+				(*SellItr)(Stock, SellItr->amount() - SellRemain);
 			}
-			
-			return Profit;
 		}
 	};
 	struct qamount_maximize_market_manager {
 		template<typename iterator, typename logger>
-		amount_t operator()(item_id Currency, iterator BuyBeg, iterator BuyEnd, iterator SellBeg, iterator SellEnd, logger&& Logger) {
+		void operator()(item_id Currency, stock_interface& Stock, iterator BuyBeg, iterator BuyEnd, iterator SellBeg, iterator SellEnd, logger&& Logger) {
+			using order_item = decltype(*BuyBeg);
 			//Amount Maximize Calculation
 			amount_t BuyRemain = 0;
 			amount_t SellRemain = 0;
@@ -227,16 +242,16 @@ namespace trade {
 			amount_t SellAmount = 0;
 
 			iterator BBeg = BuyBeg;
-			if (BBeg == BuyEnd)return Profit;
-			iterator BEnd = std::upper_bound(BBeg,BuyEnd,*BBeg,order::buy_pred());
+			if (BBeg == BuyEnd)return;
+			iterator BEnd = std::upper_bound(BBeg, BuyEnd, *BBeg);
 			iterator SBeg = SellBeg;
-			if (SBeg == SellEnd)return Profit;
-			iterator SEnd = std::upper_bound(SBeg, SellEnd, *SBeg, order::sell_pred());
+			if (SBeg == SellEnd)return;
+			iterator SEnd = std::upper_bound(SBeg, SellEnd, *SBeg);
 
 			while (true) {
-				BuyAmount = std::accumulate(BBeg, BEnd, 0, [](amount_t val, const order& v)->amount_t{return v.amount() + val; });
+				BuyAmount = std::accumulate(BBeg, BEnd, 0, [](amount_t val, const order_item& v)->amount_t {return v.amount() + val; });
 				amount_t BuyPrice = BBeg->price();
-				SellAmount = std::accumulate(SBeg, SEnd, 0, [](amount_t val, const order& v)->amount_t {return v.amount() + val; });
+				SellAmount = std::accumulate(SBeg, SEnd, 0, [](amount_t val, const order_item& v)->amount_t {return v.amount() + val; });
 				amount_t SellPrice = SBeg->price();
 
 
@@ -289,13 +304,13 @@ namespace trade {
 				if (BuyRemain == 0) {
 					BBeg = BEnd;
 					if (BBeg != BuyEnd) {
-						BEnd = std::upper_bound(BBeg, BuyEnd, *BBeg, order::buy_pred());
+						BEnd = std::upper_bound(BBeg, BuyEnd, *BBeg);
 					}
 				}
 				if (SellRemain == 0) {
 					SBeg = SEnd;
-					if (SBeg!= SellEnd) {
-						SEnd = std::upper_bound(SBeg, SellEnd, *SBeg, order::sell_pred());
+					if (SBeg != SellEnd) {
+						SEnd = std::upper_bound(SBeg, SellEnd, *SBeg);
 					}
 				}
 
@@ -309,15 +324,15 @@ namespace trade {
 			Profit = 0;
 			for (; BuyBeg != BBeg; ++BuyBeg) {
 				Profit += BuyBeg->amount()*BuyBeg->price();
-				(*BuyBeg)(false, Currency);
-				Logger.contract_buy(*BuyBeg, BuyBeg->amount());
+				Logger.contract(BuyBeg->content(), BuyBeg->amount());
+				(*BuyBeg)(Stock);
 			}
-			if(BBeg != BuyEnd && BBeg!=BEnd){
+			if (BBeg != BuyEnd && BBeg != BEnd) {
 				Profit += LastBuyAmount*BBeg->price();
 				if (std::next(BBeg) == BEnd) {
 					Profit += LastBuyAmount*BBeg->price();
-					(*BBeg)(false, Currency, LastBuyAmount);
-					Logger.contract_buy(*BBeg, LastBuyAmount);
+					Logger.contract(BBeg->content(), LastBuyAmount);
+					(*BBeg)(Stock, LastBuyAmount);
 				} else {
 					std::vector<unsigned int> Div(std::distance(BBeg, BEnd), 0);
 					int Cnt = 0;
@@ -344,23 +359,23 @@ namespace trade {
 					DItr = Div.begin();
 					for (; BBeg != BEnd; ++BBeg, ++DItr) {
 						if (*DItr == 0)continue;
-						(*BBeg)(false, Currency, (*DItr));
-						Logger.contract_buy(*BBeg, (*DItr));
+						Logger.contract(BBeg->content(), (*DItr));
+						(*BBeg)(Stock,*DItr);
 					}
 				}
 			}
 
 			for (; SellBeg != SBeg; ++SellBeg) {
 				Profit -= SellBeg->amount()*SellBeg->price();
-				(*SellBeg)(true, Currency);
-				Logger.contract_sell(*SellBeg, SellBeg->amount());
+				Logger.contract(SellBeg->content(), SellBeg->amount());
+				(*SellBeg)(Stock);
 			}
-			if (SBeg != SEnd && SBeg != SellEnd){
+			if (SBeg != SEnd && SBeg != SellEnd) {
 				Profit -= LastSellAmount*SBeg->price();
 				if (std::next(SBeg) == SEnd) {
 					Profit += LastSellAmount*SBeg->price();
-					(*SBeg)(true, Currency, LastSellAmount);
-					Logger.contract_sell(*SBeg, LastSellAmount);
+					Logger.contract(SBeg->content(), LastSellAmount);
+					(*SBeg)(Stock, LastSellAmount);
 				} else {
 					std::vector<unsigned int> Div(std::distance(SBeg, SEnd), 0);
 					int Cnt = 0;
@@ -387,13 +402,11 @@ namespace trade {
 					DItr = Div.begin();
 					for (; SBeg != SEnd; ++SBeg, ++DItr) {
 						if (*DItr == 0)continue;
-						(*SBeg)(true, Currency, (*DItr));
-						Logger.contract_sell(*SBeg, (*DItr));
+						Logger.contract(SBeg->content(), (*DItr));
+						(*SBeg)(Stock, (*DItr));
 					}
 				}
-			}	
-
-			return Profit;
+			}
 		}
 	};
 }

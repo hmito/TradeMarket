@@ -9,36 +9,91 @@
 #include<algorithm>
 #include"Utility.hpp"
 #include"Market.hpp"
+#include"Stock.hpp"
 namespace trade {
 	using product_id = unsigned int;
-	constexpr unsigned int PRODUCT_INPUT_NUM = 3;
 
 	class product{
+	private:
+		static constexpr unsigned int MaxInputSize = 3;
 	public:
+		struct stock {
+		public:
+			using container = std::array<amount_t, MaxInputSize + 1 >;
+			using const_iterator = typename container::const_iterator;
+		private:
+			container Container;
+		public:
+			
+		};
+	private:
 		std::string Name;
-		using input_t = std::array<amount_t, PRODUCT_INPUT_NUM>;
-		std::array<item_id, PRODUCT_INPUT_NUM> InputID;
-		item_id OutputID;
-		std::array<double, PRODUCT_INPUT_NUM> InputCoef;
+		std::array<item_id, MaxInputSize + 1 > ID;
+		std::array<amount_t, MaxInputSize + 1 > Coef;
 	public:
-		double operator()(input_t& Input) {
-			amount_t Num = std::numeric_limits<amount_t>::max();
+		bool operator()(stock_type& Stock, amount_t Worker) {
+			amount_t Num = Worker;
 
-			for (unsigned int i = 0; i < PRODUCT_INPUT_NUM; ++i) {
+			for (unsigned int i = 0; i < MaxInputSize; ++i) {
 				if (InputCoef[i] > 0.0) Num = std::min(Num, static_cast<amount_t>(Input[i] / InputCoef[i]));
 			}
 
-			for (unsigned int i = 0; i < PRODUCT_INPUT_NUM; ++i) {
+			for (unsigned int i = 0; i < MaxInputSize; ++i) {
 				if (InputCoef[i] > 0.0) Input[i] -= Num*InputCoef[i];
 				if (Input[i] < 0)Input[i] = 0.0;
 			}
 
-			return Num;
+			Output += OutputCoef*Num;
+
+			return false;
 		}
 	};
 	using product_input_t = typename product::input_t;
 	struct product_holder_interface {
 		virtual const product& get_product(product_id)const = 0;
+	};
+	class product_stock : public stock_interface {
+	public:
+		product* Ptr;
+		product::input_t Input;
+		amount_t Output;
+	private:
+		void work(amount_t Worker) {
+			(*Ptr)(Input, Output, Worker);
+		}
+	protected:
+		bool add(item_id ID, amount_t Amount)override {
+			if (ID == ItemID_Worker) {
+				work(Amount);
+			}
+
+			if (Ptr->OutputID == ID) {
+				Output += Amount;
+				return false;
+			}
+
+			for (unsigned int i = 0; i < product::MaxInputSize; ++i) {
+				if (Ptr->InputID[i] == ID) {
+					Input[i] += Amount;
+					return false;
+				}
+			}
+			return true;
+		}
+	public:
+		const amount_t get(item_id ID)const override {
+			if (Ptr->OutputID == ID) {
+				return Output;
+			}
+
+			for (unsigned int i = 0; i < product::MaxInputSize; ++i) {
+				if (Ptr->InputID[i] == ID) {
+					return Input[i];
+				}
+			}
+
+			return 0;
+		}
 	};
 }
 #
