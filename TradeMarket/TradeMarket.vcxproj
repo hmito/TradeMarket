@@ -118,7 +118,6 @@
   <ItemGroup>
     <ClInclude Include="Company.hpp" />
     <ClInclude Include="Market.hpp" />
-    <ClInclude Include="OldMarket.hpp" />
     <ClInclude Include="MarketData.hpp" />
     <ClInclude Include="Product.hpp" />
     <ClInclude Include="Stock.hpp" />

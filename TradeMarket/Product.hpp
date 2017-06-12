@@ -17,21 +17,14 @@ namespace trade {
 	private:
 		static constexpr unsigned int MaxInputSize = 3;
 	public:
-		struct stock {
-		public:
-			using container = std::array<amount_t, MaxInputSize + 1 >;
-			using const_iterator = typename container::const_iterator;
-		private:
-			container Container;
-		public:
-			
-		};
+		static constexpr unsigned int max_input_size() { return MaxInputSize; }
+		static constexpr unsigned int max_size() { return max_input_size() + 2; }
 	private:
 		std::string Name;
-		std::array<item_id, MaxInputSize + 1 > ID;
-		std::array<amount_t, MaxInputSize + 1 > Coef;
+		std::array<item_id, MaxInputSize + 2> ID;		//Lab,Out,In...
+		std::array<amount_t, MaxInputSize + 2> Coef;	//Lab,Out,In...
 	public:
-		bool operator()(stock_type& Stock, amount_t Worker) {
+		bool operator()(stock& Stock, amount_t Worker) {
 			amount_t Num = Worker;
 
 			for (unsigned int i = 0; i < MaxInputSize; ++i) {
@@ -48,7 +41,27 @@ namespace trade {
 			return false;
 		}
 	};
-	using product_input_t = typename product::input_t;
+	struct product_stock : public stock_interface {
+	public:
+		using container = std::array<amount_t, product::max_size()>;
+		using const_iterator = typename container::const_iterator;
+	private:
+		product* pProduct;
+		container Container;
+	protected:
+		bool add(item_id ID, amount_t Amount) override {
+			auto No = pProduct->find_no(ID);
+			if (No < 0)return true;
+			Container.at(No) += Amount;
+			return false;
+		}
+	public:
+		amount_t get(item_id ID)const override {
+			auto No = pProduct->find_no(ID);
+			if (No < 0)return 0;
+			return Container.at(No);
+		}
+	};
 	struct product_holder_interface {
 		virtual const product& get_product(product_id)const = 0;
 	};

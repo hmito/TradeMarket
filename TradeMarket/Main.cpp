@@ -2,6 +2,7 @@
 //#include"Company.hpp"
 #include"Market.hpp"
 #include"MarketData.hpp"
+#include"Product.hpp"
 
 namespace trade {
 //	struct stock{};
