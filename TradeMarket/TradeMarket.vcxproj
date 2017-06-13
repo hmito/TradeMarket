@@ -117,11 +117,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Company.hpp" />
+    <ClInclude Include="Stocks.hpp" />
     <ClInclude Include="Market.hpp" />
     <ClInclude Include="MarketData.hpp" />
     <ClInclude Include="Product.hpp" />
     <ClInclude Include="Stock.hpp" />
-    <ClInclude Include="Trader.hpp" />
+    <ClInclude Include="Merchant.hpp" />
     <ClInclude Include="Utility.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

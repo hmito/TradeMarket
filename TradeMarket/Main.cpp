@@ -3,7 +3,7 @@
 #include"Market.hpp"
 #include"MarketData.hpp"
 #include"Product.hpp"
-
+#include"Merchant.hpp"
 namespace trade {
 //	struct stock{};
 //	struct trader{};

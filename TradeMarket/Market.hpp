@@ -4,7 +4,7 @@
 #include<utility>
 #include<vector>
 #include"Utility.hpp"
-#include"Stock.hpp"
+#include"Stocks.hpp"
 namespace trade {
 	struct market_interface {
 	public:
@@ -30,17 +30,18 @@ namespace trade {
 			amount_t price()const { return Price>0?Price:-Price; }
 			amount_t cmp_price()const { return Price; }
 			bool is_sell()const { return Price > 0; }
-			void deal(stock_interface& Recipient, stock_interface& Market) {
+			bool deal(stock_interface& Recipient, stock_interface& Market) {
 				if (is_sell()) {
 					//Sell
-					trade::deal(Recipient, Market, ID, amount());
+					if(trade::deal(Recipient, Market, ID, amount()))return true;
 					trade::deal(Market, Recipient, Currency, price()*amount());
 				} else {
 					//Buy
+					if(trade::deal(Recipient, Market, Currency, price()*amount()))return true;
 					trade::deal(Market, Recipient, ID, amount());
-					trade::deal(Recipient, Market, Currency, price()*amount());
 				}
 				Amount = 0;
+				return false;
 			}
 		};
 		struct recipient_interface {
