@@ -10,6 +10,7 @@
 namespace trade {
 	struct stock_interface {
 		friend void deal(stock_interface& From, stock_interface& To, item_id ID, amount_t Amount);
+	protected:
 		struct dealable {
 			void operator()(stock_interface& To, item_id ID, amount_t Amount) {To.add(ID, Amount);}
 		};
