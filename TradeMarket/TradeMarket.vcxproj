@@ -116,8 +116,11 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Citizen.hpp" />
     <ClInclude Include="Claim.hpp" />
     <ClInclude Include="Company.hpp" />
+    <ClInclude Include="Item.hpp" />
+    <ClInclude Include="LaborMarket.hpp" />
     <ClInclude Include="Stocks.hpp" />
     <ClInclude Include="Market.hpp" />
     <ClInclude Include="MarketData.hpp" />

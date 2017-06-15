@@ -1,6 +1,7 @@
 #ifndef TRADE_MERCHANT_INC
 #define TRADE_MERCHANT_INC 100
 #
+#include"Utility.hpp"
 #include"Market.hpp"
 #include"Claim.hpp"
 namespace trade {
@@ -28,10 +29,9 @@ namespace trade {
 				MarketTaxClaim(Stock);
 			}
 		};
-	private:
 	public:
-		void buy();
-		void sell();
+		void buy(item_id ID, amount_t Amount, amount_t Price);
+		void sell(item_id ID, amount_t Amount, amount_t Price);
 	};
 }
 #

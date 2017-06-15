@@ -21,7 +21,7 @@ namespace trade {
 		using container = std::vector<item_element>;
 		using const_iterator = typename container::const_iterator;
 	public:
-		struct product_stock : public stock_interface {
+		struct stock : public stock_interface {
 		public:
 			using container = std::vector<amount_t>;
 			using const_iterator = typename container::const_iterator;
@@ -30,7 +30,7 @@ namespace trade {
 			const product* pProduct;
 			container LOI;
 		public:
-			product_stock(const product& Product_):pProduct(&Product_) {
+			stock(const product& Product_):pProduct(&Product_) {
 				LOI.assign(Product_.size(), 0);
 			}
 		protected:
@@ -91,8 +91,9 @@ namespace trade {
 		const_iterator input_begin()const { return LOI.begin() + 2; }
 		const_iterator input_end()const { return LOI.end(); }
 		unsigned int input_size()const { return LOI.size() - 2; }
-		product_stock make_stock()const { return product_stock(*this); }
+		stock make_stock()const { return stock(*this); }
 	};
+	using product_stock = typename product::stock;
 }
 #
 #endif

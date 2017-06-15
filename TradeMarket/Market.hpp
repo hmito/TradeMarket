@@ -137,7 +137,6 @@ namespace trade {
 
 			Stock.sort();
 		}
-
 	};
 	struct amount_maximize_market_manager {
 		template<typename iterator, typename logger>

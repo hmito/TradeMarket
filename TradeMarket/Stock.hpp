@@ -16,7 +16,6 @@ namespace trade {
 		};
 	protected:
 		virtual bool add(item_id ID, amount_t Amount) = 0;
-	public:
 		virtual amount_t get(item_id ID)const = 0;
 	public:
 		const amount_t operator[](item_id ID)const { return get(ID); }

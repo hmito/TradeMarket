@@ -5,6 +5,7 @@
 #include<vector>
 #include<memory>
 #include"Product.hpp"
+#include"Merchant.hpp"
 namespace trade {
 
 	struct market_info_interface {
@@ -173,7 +174,7 @@ namespace trade {
 		city_id TargetCity;
 		std::unique_ptr<productAI> ProductAI;
 	public:
-		marchant Marchant;
+		merchant Merchant;
 	public:
 		void operator()(amount_t WorkerNum_, info_interface& Info) {
 			ProductAI->operator()(WorkerNum_, Stock, Info, Marchant);
