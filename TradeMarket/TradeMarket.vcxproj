@@ -116,6 +116,7 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Claim.hpp" />
     <ClInclude Include="Company.hpp" />
     <ClInclude Include="Stocks.hpp" />
     <ClInclude Include="Market.hpp" />

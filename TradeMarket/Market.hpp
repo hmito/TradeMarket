@@ -5,6 +5,7 @@
 #include<vector>
 #include"Utility.hpp"
 #include"Stocks.hpp"
+#include"Claim.hpp"
 namespace trade {
 	struct market_interface {
 	public:
@@ -30,22 +31,11 @@ namespace trade {
 			amount_t price()const { return Price>0?Price:-Price; }
 			amount_t cmp_price()const { return Price; }
 			bool is_sell()const { return Price > 0; }
-			bool deal(stock_interface& Recipient, stock_interface& Market) {
-				if (is_sell()) {
-					//Sell
-					if(trade::deal(Recipient, Market, ID, amount()))return true;
-					trade::deal(Market, Recipient, Currency, price()*amount());
-				} else {
-					//Buy
-					if(trade::deal(Recipient, Market, Currency, price()*amount()))return true;
-					trade::deal(Market, Recipient, ID, amount());
-				}
-				Amount = 0;
-				return false;
-			}
+			trade_claim make_claim(stock_interface& Market_)const { return trade_claim(Market_, is_sell() ? trade_content(currency(), price()*amount(), id(), amount()): trade_content(id(), amount(), currency(), price()*amount())); }
+			trade_claim make_claim(stock_interface& Market_, amount_t Amount_)const { return trade_claim(Market_, is_sell() ? trade_content(currency(), price()*Amount_, id(), Amount_) : trade_content(id(), Amount_, currency(), price()*Amount_)); }
 		};
 		struct recipient_interface {
-			virtual bool operator()(order_content Content_, stock_interface& Market_) = 0;
+			virtual bool operator()(trade_claim Claim_) = 0;
 		};
 	protected:
 		struct order_item {
@@ -68,10 +58,10 @@ namespace trade {
 			amount_t price()const { return Content.price(); }
 			bool is_sell()const { return Content.is_sell(); }
 			bool operator()(stock_interface& Market_) {
-				return (*pRecipient)(Content,Market_);
+				return (*pRecipient)(Content.make_claim(Market_));
 			}
 			bool operator()(stock_interface& Market_, amount_t Amount_) {
-				return (*pRecipient)(order_content(Content.id(), Amount_, Content.currency(), Content.price(), Content.is_sell()), Market_);
+				return (*pRecipient)(Content.make_claim(Market_,Amount_));
 			}
 			friend bool operator<(const order_item& v1, const order_item& v2) {
 				if (v1.id() != v2.id()) return v1.id()< v2.id();

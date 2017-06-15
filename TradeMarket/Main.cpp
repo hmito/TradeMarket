@@ -5,8 +5,8 @@
 #include"Product.hpp"
 #include"Merchant.hpp"
 namespace trade {
-//	struct stock{};
-//	struct trader{};
+	//	struct stock{};
+	//	struct trader{};
 }
 
 namespace trade {
@@ -40,17 +40,11 @@ namespace trade {
 	};
 	struct null_recipient : public market_interface::recipient_interface {
 		absolute_stock Stock;
-		bool operator()(typename market_interface::order_content Content_, stock_interface& Market_)override {
-			if (Content_.is_sell()) {
-				std::cout << "Sell";
-			} else {
-				std::cout << "Buy";
-			}
-			std::cout<< "\t" << Content_.id() << ":" << Content_.amount()
-				<< "\t" << Content_.currency() << ":" << Content_.price()
+		bool operator()(trade_claim Claim_)override {
+			std::cout<<"<<"<< Claim_.give_id() << ":" << Claim_.give_amount()
+				<< "\t>>" << Claim_.take_id() << ":" << Claim_.take_amount()
 				<< std::endl;
-
-			Content_.deal(Stock, Market_);
+			Claim_(Stock);
 
 			return false;
 		}
