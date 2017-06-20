@@ -2,15 +2,10 @@
 #define TRADE_UTILITY_INC 100
 #
 namespace trade {
-	using amount_t = int;
-	using item_id = unsigned int;
 	using city_id = unsigned int;
-
-	constexpr item_id ItemID_Worker = 0;
-
-	class item_contents {
-		std::string Name;
-		std::string Unit;
+	using agent_id = unsigned int;
+	enum class education_level : unsigned char {
+		none = 0, primary = 1, secondary = 2, tertiary = 3
 	};
 }
 #

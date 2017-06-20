@@ -27,7 +27,6 @@ namespace trade {
 
 			return false;
 		}
-	public:
 		amount_t get(item_id ID)const override {
 			auto Itr = Stock.find(ID);
 			if (Itr == Stock.end())return 0;

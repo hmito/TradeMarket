@@ -2,6 +2,8 @@
 #define TRADE_CITIZEN_INC 100
 #
 #include<array>
+#include"Utility.hpp"
+#include"Item.hpp"
 #include"Stock.hpp"
 #include"Merchant.hpp"
 namespace trade {
@@ -21,7 +23,7 @@ namespace trade {
 	private:
 		stock Stock;
 		merchant Merchant;
-		unsigned int EducationLv;
+		education_level EducationLv;
 	public:
 
 	};

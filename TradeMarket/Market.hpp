@@ -3,7 +3,7 @@
 #
 #include<utility>
 #include<vector>
-#include"Utility.hpp"
+#include"Item.hpp"
 #include"Stocks.hpp"
 #include"Claim.hpp"
 namespace trade {

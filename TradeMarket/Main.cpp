@@ -1,5 +1,6 @@
 #include<iostream>
 //#include"Company.hpp"
+#include"Item.hpp"
 #include"Market.hpp"
 #include"MarketData.hpp"
 #include"Product.hpp"

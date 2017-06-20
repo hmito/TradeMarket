@@ -2,7 +2,9 @@
 #define TRADE_ITEM_INC 100
 #
 #include<string>
-#include<unordered_map>
+#include<vector>
+#include<fstream>
+#include<hmLib/csv_iterator.hpp>
 namespace trade {
 	using amount_t = int;
 	using item_id = unsigned int;
@@ -14,7 +16,11 @@ namespace trade {
 	};
 	constexpr item_id ItemID_Worker = 0;
 
-	struct item_list {
+	struct item_info_interface {
+		virtual item_category category(item_id ID) = 0;
+		virtual item_id labor_id(education_level Lv) = 0;
+	};
+	struct item_map{
 	private:
 		struct content {
 			item_category Category;
@@ -22,32 +28,25 @@ namespace trade {
 			std::string Unit;
 		};
 	private:
-		using container = std::unordered_map<item_id, content>;
+		using container = std::vector<content>;
 	private:
 		container Container;
 	public:
-		static item_category category(item_id ID) {
-			//0:null
-			//1-999:system id
-			//1000-9999:market id
-			//10000-:normal id
-			if (ID == 0)return item_category::null;
-			if (ID < 1000) return item_category::labor;
-			if (ID < 2000) return item_category::currency;
-			if (ID < 10000) return item_category::bond;
-			return item_category::goods;
+		item_category category(item_id ID) {
+
 		}
-		static item_id labor_id(education_level Lv) {
-			switch (Lv) {
-			case education_level::low:
-				return 2;
-			case education_level::middle:
-				return 3;
-			case education_level::high:
-				return 4;
-			default:
-				return 1;
-			}
+		item_id labor_id(education_level Lv) {
+
+		}
+		void insert(item_category Category, std::string Name, std::string Unit) {
+			Container.emplace_back(Category, Name, Unit);
+		}
+	public:
+		static item_map load(std::string FileName) {
+			item_map Map;
+			Map.insert(item_category::null, "Null", "");
+			std::ifstream Fin(FileName);
+			auto Itr = hmLib::icsv_begin(Fin);
 		}
 	};
 }
