@@ -4,7 +4,6 @@
 #include<string>
 #include<vector>
 #include<fstream>
-#include<hmLib/csv_iterator.hpp>
 namespace trade {
 	using amount_t = int;
 	using item_id = unsigned int;
@@ -26,6 +25,12 @@ namespace trade {
 			item_category Category;
 			std::string Name;
 			std::string Unit;
+		public:
+			content(item_category Category_, std::string Name_, std::string Unit_)
+				: Category(Category_)
+				, Name(std::move(Name_))
+				, Unit(std::move(Unit_)) {
+			}
 		};
 	private:
 		using container = std::vector<content>;
@@ -46,7 +51,7 @@ namespace trade {
 			item_map Map;
 			Map.insert(item_category::null, "Null", "");
 			std::ifstream Fin(FileName);
-			auto Itr = hmLib::icsv_begin(Fin);
+//			auto Itr = hmLib::icsv_begin(Fin);
 		}
 	};
 }
