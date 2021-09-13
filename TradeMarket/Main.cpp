@@ -54,10 +54,10 @@ namespace trade {
 }
 
 /*
-Market‚É
-Business‚ÍMarchant‚ğ‚Á‚Ä‚¢‚éB
-Marchant‚ğMarket‚É—a‚¯‚éŒ`‚Å”­’B
-Market‚ÍMarchant‚ğ§Œä‚·‚é‚±‚Æ‚Å”­’ˆ—‚ğŠ®—¹‚·‚é
+Marketã«
+Businessã¯Marchantã‚’æŒã£ã¦ã„ã‚‹ã€‚
+Marchantã‚’Marketã«é ã‘ã‚‹å½¢ã§ç™ºæ³¨ã€‚
+Marketã¯Marchantã‚’åˆ¶å¾¡ã™ã‚‹ã“ã¨ã§ç™ºæ³¨å‡¦ç†ã‚’å®Œäº†ã™ã‚‹
 */
 int main(void) {
 //	trade::null_market_logger Logger;
